@@ -32,9 +32,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   width: 100vw;
   overflow-x: hidden;
-  /*background-image: url(../img/noise.png), radial-gradient(ellipse at top, var(--gradient-1), transparent), radial-gradient(ellipse at bottom, var(--gradient-2), transparent);
-  background-size: 180px, 100%, 200%;
-  background-attachment: fixed;*/
 }
 
 /*
