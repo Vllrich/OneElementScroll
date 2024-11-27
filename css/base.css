@@ -8,32 +8,41 @@
   font-size: 16px;
   --color-text: #503717;
   --color-bg: rgb(234 234 234);
-  --color-link: #b19162;
+  --color-link: #fa9600;
   --color-link-hover: #e1c093;
   --color-title: #000;
   --page-padding: 2rem;
   --gradient-1: rgb(234 234 234 / 80%);
-  --gradient-2: rgb(229 134 27 / 30%);
+  --gradient-2: rgba(255, 255, 255, 0.3);
+}
+
+@font-face {
+  font-family: "UniviaPro";
+  src: url("../fonts/UniviaPro-Book.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
 }
 
 body {
   margin: 0;
   color: var(--color-text);
   background-color: var(--color-bg);
-  font-family: "capitana", sans-serif;
+  font-family: "UniviaPro", "capitana", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   width: 100vw;
   overflow-x: hidden;
-  background-image: url(../img/noise.png), radial-gradient(ellipse at top, var(--gradient-1), transparent), radial-gradient(ellipse at bottom, var(--gradient-2), transparent);
+  /*background-image: url(../img/noise.png), radial-gradient(ellipse at top, var(--gradient-1), transparent), radial-gradient(ellipse at bottom, var(--gradient-2), transparent);
   background-size: 180px, 100%, 200%;
-  background-attachment: fixed;
+  background-attachment: fixed;*/
 }
 
+/*
 .font-alt {
   font-family: "harpagan", sans-serif;
   font-weight: 500;
 }
+*/
 
 .outro__title,
 .credits {

@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Shader with Adapted Shadertoy Code</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const vertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+        /*
+        * Copyright (c) Lars Ullrich 2024
+        * All rights reserved.
+        *
+        * This shader code is the property of Lars Ullrich and is protected by
+        * copyright laws. Unauthorized copying, modification, distribution, or use of this
+        * shader, in whole or in part, is strictly prohibited.
+        *
+        * This shader may not be used without explicit written permission from the copyright holder.
+        *
+        * Additionally, this shader and its source code may not be used for training,
+        * fine-tuning, or development of any artificial intelligence, machine learning models,
+        * or neural networks without explicit written permission from the copyright holder.
+        *
+        * For licensing inquiries or permissions, please contact me.
+        */
+        const fragmentShader = `
+            
+            //precision mediump float;
+            uniform float iTime;
+            uniform vec2 iResolution;
+            uniform sampler2D iChannel0;
+            varying vec2 vUv;
+
+            #define MAX_WORD_LENGTH 15
+            #define GSCALE 1.0
+            #define MFSIZE 64.0
+            #define NLEVELS 8
+
+            const float PI = 3.14159265359;
+            const float TWO_PI = 2.0 * PI;
+            const vec2 BASE_GRID_SIZE = vec2(12.0, 8.0);
+            float MIN_GRAY = 0.5;
+            float currentInterval;
+
+            const int[MAX_WORD_LENGTH] pioneering = int[](80, 73, 79, 78, 69, 69, 82, 73, 78, 71, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] spirits = int[](83, 80, 73, 82, 73, 84, 83, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] digital = int[](68, 73, 71, 73, 84, 65, 76, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] shadows = int[](83, 72, 65, 68, 79, 87, 83, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] project = int[](67, 65, 83, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] frontiers = int[](70, 82, 79, 78, 84, 73, 69, 82, 83, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] unseen = int[](85, 78, 83, 69, 69, 78, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] yet = int[](89, 69, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] ever = int[](69, 86, 69, 82, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] present = int[](80, 82, 69, 83, 69, 78, 84, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] fusing = int[](70, 85, 83, 73, 78, 71, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] the = int[](84, 72, 69, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] avantgarde = int[](65, 86, 65, 78, 84, 45, 71, 65, 82, 68, 69, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] a = int[](65, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] vision = int[](86, 73, 83, 73, 79, 78, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] halfformed = int[](72, 65, 76, 70, 45, 70, 79, 82, 77, 69, 68, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] with = int[](87, 73, 84, 72, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] cuttingedge = int[](67, 85, 84, 84, 73, 78, 71, 45, 69, 68, 71, 69, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] whispers = int[](87, 72, 73, 83, 80, 69, 82, 83, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] of = int[](79, 70, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] what = int[](87, 72, 65, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] may = int[](77, 65, 89, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] come = int[](67, 79, 77, 69, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] to = int[](84, 79, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] craft = int[](67, 82, 65, 70, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] but = int[](66, 85, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] immersive = int[](73, 77, 77, 69, 82, 83, 73, 86, 69, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] illusions = int[](73, 76, 76, 85, 83, 73, 79, 78, 83, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] transformative = int[](84, 82, 65, 78, 83, 70, 79, 82, 77, 65, 84, 73, 86, 69, 32);
+            const int[MAX_WORD_LENGTH] echoes = int[](69, 67, 72, 79, 69, 83, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] world = int[](87, 79, 82, 76, 68, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] unborn = int[](85, 78, 66, 79, 82, 78, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] experiences = int[](69, 88, 80, 69, 82, 73, 69, 78, 67, 69, 83, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] that = int[](84, 72, 65, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] dance = int[](68, 65, 78, 67, 69, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] on = int[](79, 78, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] edge = int[](69, 68, 71, 69, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] real = int[](82, 69, 65, 76, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] revolutionize = int[](82, 69, 86, 79, 76, 85, 84, 73, 79, 78, 73, 90, 69, 32, 32);
+            const int[MAX_WORD_LENGTH] or = int[](79, 82, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] merely = int[](77, 69, 82, 69, 76, 89, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] turn = int[](84, 85, 82, 78, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] creative = int[](67, 82, 69, 65, 84, 73, 86, 69, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] paradigms = int[](80, 65, 82, 65, 68, 73, 71, 77, 83, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] shift = int[](83, 72, 73, 70, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] like = int[](76, 73, 75, 69, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] sand = int[](83, 65, 78, 68, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] beneath = int[](66, 69, 78, 69, 65, 84, 72, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] weight = int[](87, 69, 73, 71, 72, 84, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] our = int[](79, 85, 82, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            const int[MAX_WORD_LENGTH] hand = int[](72, 65, 78, 68, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32);
+            
+
+            float easeInOutCubic(float x) {
+                return x < 0.5 ? 4.0 * x * x * x : 1.0 - pow(-2.0 * x + 2.0, 3.0) / 2.0;
+            }
+
+            float easeInOutQuint(float x) {
+                return x < 0.5 ? 16.0 * x * x * x * x * x : 1.0 - pow(-2.0 * x + 2.0, 5.0) / 2.0;
+            }
+
+            float easeInOutExpo(float x) {
+                return x == 0.0 ? 0.0 : x == 1.0 ? 1.0
+                       : x < 0.5 ? pow(2.0, 20.0 * x - 10.0) / 2.0
+                       : (2.0 - pow(2.0, -20.0 * x + 10.0)) / 2.0;
+            }
+
+            float easeInOutBounce(float x) {
+                float n1 = 7.5625;
+                float d1 = 2.75;
+                if (x < 1.0 / d1) return n1 * x * x;
+                else if (x < 2.0 / d1) return n1 * (x -= 1.5 / d1) * x + 0.75;
+                else if (x < 2.5 / d1) return n1 * (x -= 2.25 / d1) * x + 0.9375;
+                else return n1 * (x -= 2.625 / d1) * x + 0.984375;
+            }
+
+            float getWordAlpha(int animIdx) {
+                float randSeed = float(animIdx) * 0.1234;
+                return 0.5 + 0.5 * fract(sin(randSeed) * 43758.5453);
+            }
+
+            float random(float seed) {
+                return fract(sin(seed * 78.233) * 43758.5453);
+            }
+
+            float getTimeInterval(float t) {
+                float r = fract(sin(floor(t)) * 43758.5453);
+                if (r < 0.25) return 1.0;
+                else if (r < 0.5) return 1.5;
+                else if (r < 0.75) return 3.0;
+                else return 4.0;
+            }
+
+            vec3 colorQuantization(vec3 color, float levels) {
+                return floor(color * levels) / levels;
+            }
+            vec3 adjustSaturation(vec3 color, float saturation) {
+                float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+                return mix(vec3(luminance), color, saturation);
+            }
+
+
+            vec3 rgbSplit(vec3 color, vec2 uv, float amount, vec2 resolution) {
+                vec2 direction = vec2(1.0, 0.0);
+                vec2 pixelOffset = direction * amount / resolution;
+                vec3 rColor = vec3(color.r, 0.0, 0.0);
+                vec3 gColor = vec3(0.0, color.g, 0.0);
+                vec3 bColor = vec3(0.0, 0.0, color.b);
+                vec2 rUV = clamp(uv + pixelOffset, 0.0, 1.0);
+                vec2 bUV = clamp(uv - pixelOffset, 0.0, 1.0);
+                vec3 finalColor = mix(rColor, color, smoothstep(0.0, 1.0, rUV.x));
+                finalColor += mix(bColor, color, smoothstep(0.0, 1.0, bUV.x));
+                finalColor += gColor;
+                return finalColor;
+            }
+
+            float animatedStripes(in vec2 fragCoord) {
+                vec2 uv = fragCoord / iResolution.xy;
+                float time = iTime;
+                currentInterval = getTimeInterval(time);
+                float adjustedTime = floor(time / currentInterval) * currentInterval;
+                int aiStripes = int(mod(floor(random(adjustedTime) * 20.0), 20.0));
+                float animationProgress = (time - adjustedTime) / currentInterval;
+                
+                vec2 animatedUV = uv;
+                vec2 gridSize = BASE_GRID_SIZE;
+
+                switch(aiStripes) {
+                    case 0: // Horizontal movement with size change
+                        animatedUV.x = fract(uv.x + animationProgress);
+                        gridSize.x = BASE_GRID_SIZE.x * (1.0 + 0.5 * sin(animationProgress * TWO_PI));
+                        break;
+                    case 1: // Vertical movement with size change
+                        animatedUV.y = fract(uv.y + animationProgress);
+                        gridSize.y = BASE_GRID_SIZE.y * (1.0 + 0.5 * sin(animationProgress * TWO_PI));
+                        break;
+                    case 2: // Diagonal movement with pulsating size
+                        animatedUV = fract(uv + vec2(animationProgress));
+                        float pulseScale = 1.0 + 0.3 * sin(animationProgress * 12.56636);
+                        gridSize *= pulseScale;
+                        break;
+                    case 3: // Zoom In/Out with size change
+                        float zmScale2 = mix(1.0, 2.5, easeInOutExpo(animationProgress));
+                        animatedUV = (uv - 0.5) * zmScale2 + 0.5;
+                        gridSize /= zmScale2;
+                        break;
+                    case 4: // Rotation with size change
+                        float angle2 = animationProgress * TWO_PI;
+                        vec2 center = vec2(0.5);
+                        animatedUV -= center;
+                        animatedUV = vec2(
+                            animatedUV.x * cos(angle2) - animatedUV.y * sin(angle2),
+                            animatedUV.x * sin(angle2) + animatedUV.y * cos(angle2)
+                        );
+                        animatedUV += center;
+                        gridSize *= (1.0 + 0.5 * sin(animationProgress * 9.42477));
+                        break;
+                    case 5: // Wave movement with variable amplitude and frequency
+                        float waveAmplitude = 0.1 * (1.0 + sin(animationProgress * PI));
+                        float waveFrequency = 10.0 + 5.0 * sin(animationProgress * TWO_PI);
+                        animatedUV.x += waveAmplitude * sin(animatedUV.y * waveFrequency + animationProgress * TWO_PI);
+                        gridSize.x *= (1.0 - waveAmplitude);
+                        break;
+                    case 6: // Pulsating with size change
+                        float pulseIntensity = 0.5 + 0.5 * sin(animationProgress * 12.56636);
+                        gridSize *= (1.0 + 0.5 * pulseIntensity);
+                        break;
+                    case 7: // Spiral distortion with size change
+                        float spiralStrength = 0.2 * animationProgress;
+                        float spiralAngle = length(uv - 0.5) * 10.0;
+                        vec2 spiralOffset = spiralStrength * vec2(cos(spiralAngle), sin(spiralAngle));
+                        animatedUV = fract(uv + spiralOffset);
+                        gridSize *= (1.0 + spiralStrength);
+                        break;
+                    case 8: // Size change of stripes with bounce effect
+                        float bounceProgress = abs(1.0 - mod(animationProgress * 2.0, 2.0));
+                        float bounceFactor = 1.0 + 1.5 * (1.0 - pow(bounceProgress - 1.0, 2.0));
+                        gridSize *= bounceFactor;
+                        break;
+                    case 9: // Distortion with size pulsation
+                        animatedUV += 0.1 * vec2(sin(animatedUV.y * 10.0), cos(animatedUV.x * 10.0)) * animationProgress;
+                        gridSize *= (1.0 + 0.3 * sin(animationProgress * 18.84955));
+                        break;
+                    case 10: // Circular wave distortion
+                        float dist = length(uv - 0.5);
+                        float wave = sin(dist * 20.0 - animationProgress * TWO_PI);
+                        animatedUV += 0.02 * wave * normalize(uv - 0.5);
+                        gridSize *= (1.0 + 0.2 * wave);
+                        break;
+                    case 11: // Checkerboard pulsation
+                        vec2 check = step(0.5, fract(animatedUV * 10.0));
+                        float checkSum = check.x + check.y;
+                        gridSize *= (1.0 + 0.3 * sin(checkSum * 3.14159 + animationProgress * TWO_PI));
+                        break;
+                    case 12: // Radial size gradient
+                        float radialDist = length(uv - 0.5);
+                        gridSize *= (1.0 + radialDist * sin(animationProgress * TWO_PI));
+                        break;
+                    case 13: // Twirl distortion
+                        /*vec2 twirlCenter = vec2(0.5);
+                        vec2 twirlVector = uv - twirlCenter;
+                        float twirlLength = length(twirlVector);
+                        float twirlAngle = atan(twirlVector.y, twirlVector.x) + animationProgress * 3.14159 * (1.0 - twirlLength);
+                        animatedUV = twirlCenter + twirlLength * vec2(cos(twirlAngle), sin(twirlAngle));
+                        gridSize *= (1.0 + 0.5 * twirlLength);
+                        break;*/
+                        float irisRadius = easeInOutCubic(animationProgress) * 0.7;
+                        float distToCenter = length(uv - 0.5);
+                        if (distToCenter > irisRadius) {
+                            animatedUV = vec2(0.5);
+                        }
+                        break;
+                    case 14: // Ripple effect
+                        vec2 rippleCenter = vec2(0.5);
+                        float rippleDist = length(uv - rippleCenter);
+                        float ripple = sin(rippleDist * 40.0 - animationProgress * 10.0) * 0.01 / (rippleDist + 0.1);
+                        animatedUV += ripple * (uv - rippleCenter);
+                        gridSize *= (1.0 + ripple * 5.0);
+                        break;
+                    case 15: // Zigzag distortion
+                        float zigzag = sin(animatedUV.y * 20.0 + sin(animatedUV.x * 10.0)) * 0.02;
+                        animatedUV.x += zigzag * sin(animationProgress * 6.28318);
+                        gridSize.x *= (1.0 + abs(zigzag) * 5.0);
+                        break;
+                    case 16: // Mosaic effect
+                        vec2 mosaicSize = vec2(10.0, 10.0) * (1.0 + 0.5 * sin(animationProgress * PI));
+                        animatedUV = floor(uv * mosaicSize) / mosaicSize;
+                        gridSize = BASE_GRID_SIZE * mosaicSize / 10.0;
+                        break;
+                    case 17: // Vertical squeeze and stretch
+                        float squeeze = 1.0 + 0.25 * sin(animationProgress * TWO_PI);
+                        animatedUV.x = (uv.x - 0.5) * squeeze + 0.5;
+                        gridSize.x /= squeeze;
+                        break;
+                    case 18: // Horizontal accordion effect
+                        float accordion = 1.0 + 0.3 * sin(uv.x * 10.0 + animationProgress * TWO_PI);
+                        animatedUV.x = uv.x * accordion;
+                        gridSize.x *= accordion;
+                        break;
+                    case 19: // Squeeze effect
+                        float squeeze2 = 1.0 + .05 * sin(animationProgress * TWO_PI);
+                        animatedUV.y = (uv.y - 0.5) * squeeze2 + 0.5;
+                        break;
+                }
+
+                // Animate the rectangle with a delay
+                float rectDelay = 0.25; // 25% delay
+                float rectAnimationProgress = max(0.0, (animationProgress - rectDelay) / (1.0 - rectDelay));
+                float rectHeight = 0.25;
+                float rectCenterY = 0.5;
+                float rectWidth = 1.0; 
+
+                switch(aiStripes) {
+                    case 0: // Horizontal movement
+                        rectCenterY = 0.5 + 0.25 * sin(rectAnimationProgress * TWO_PI);
+                        break;
+                    case 1: // Vertical stretch
+                        rectHeight *= (1.0 + 0.5 * sin(rectAnimationProgress * TWO_PI));
+                        break;
+                    case 2: // Diagonal movement
+                        rectCenterY = fract(0.5 + rectAnimationProgress);
+                        break;
+                    case 3: // Zoom In/Out
+                        float zmScale = mix(1.0, 2.5, easeInOutExpo(rectAnimationProgress));
+                        rectHeight /= zmScale;
+                        break;
+                    case 4: // Rotating rectangle
+                        float angle3 = rectAnimationProgress * TWO_PI;
+                        rectCenterY = 0.5 + 0.25 * sin(angle3);
+                        rectHeight *= abs(cos(angle3)) + 0.5;
+                        break;
+                    case 5: // Bouncing rectangle
+                        rectCenterY = 0.5 + 0.4 * abs(sin(rectAnimationProgress * PI));
+                        break;
+                    case 6: // Pulsating size
+                        float pulse = 1.0 + 0.5 * sin(rectAnimationProgress * 12.56636);
+                        rectHeight *= pulse;
+                        rectWidth = 2.0 - pulse; // Inverse pulse for width
+                        break;
+                    case 7: // Spiral movement
+                        float spiral = rectAnimationProgress * 4.0;
+                        rectCenterY = 0.5 + 0.5 * sin(spiral) * (1.0 - rectAnimationProgress);
+                        rectWidth = 1.0 - 0.5 * rectAnimationProgress; // Narrow as it spirals
+                        break;
+                    case 8: // Wave distortion
+                        rectCenterY = 0.5 + 0.5 * sin(uv.x * 10.0 + rectAnimationProgress * TWO_PI);
+                        break;
+                    case 9: // Split and rejoin
+                        if (rectAnimationProgress < 0.5) {
+                            rectHeight *= 1.0 - rectAnimationProgress * 2.0;
+                        } else {
+                            rectHeight *= (rectAnimationProgress - 0.5) * 2.0;
+                        }
+                        break;
+                    case 10: // Accordion fold
+                        rectCenterY = 0.5 + 0.2 * sin(uv.x * 5.0 + rectAnimationProgress * TWO_PI);
+                        rectHeight *= 0.5 + 0.5 * cos(uv.x * 5.0 + rectAnimationProgress * TWO_PI);
+                        break;
+                    case 11: // Twist effect
+                        rectCenterY = 0.5 + 0.2 * sin((uv.x - 0.5) * TWO_PI + rectAnimationProgress * TWO_PI);
+                        break;
+                    case 12: // Shear transform
+                        rectCenterY += (uv.x - 0.5) * sin(rectAnimationProgress * PI);
+                        break;
+                    case 13: // Circular motion
+                        float circleRadius = 0.25;
+                        rectCenterY = 0.5 + circleRadius * sin(rectAnimationProgress * TWO_PI);
+                        rectWidth = 1.0 + 0.5 * cos(rectAnimationProgress * TWO_PI); // Width changes with circular motion
+                        break;
+                    case 14: // Elastic bounce
+                        float t = fract(rectAnimationProgress * 2.0);
+                        rectCenterY = 0.5 + 0.4 * (1.0 - (1.0 - t) * (1.0 - t)); // Ease out quad
+                        break;
+                    case 15: // Origami fold
+                        float foldProgress = sin(rectAnimationProgress * PI);
+                        rectHeight *= 1.0 - 0.5 * foldProgress;
+                        rectCenterY = 0.5 + 0.25 * foldProgress * sign(uv.x - 0.5);
+                        break;
+                    case 16: // Pendulum swing
+                        float swingAngle = 0.4 * sin(rectAnimationProgress * 6.28318);
+                        rectCenterY = 0.5 + 0.4 * sin(swingAngle);
+                        rectWidth = cos(swingAngle) * 0.8 + 0.2; // Perspective effect
+                        break;
+                    case 17: // Fractal subdivision
+                        int subdivisions = int(4.0 * rectAnimationProgress);
+                        float subRectHeight = rectHeight / float(subdivisions);
+                        rectCenterY = floor((uv.y - 0.5 + rectHeight * 0.5) / subRectHeight) * subRectHeight + subRectHeight * 0.5 + 0.5 - rectHeight * 0.5;
+                        rectHeight = subRectHeight * 0.9; // Slight gap between subdivisions
+                        break;
+                    case 18: // Spiral collapse
+                
+                        break;
+                    case 19: // Shockwave ripple
+                        float shockwaveDist = length(uv - vec2(0.5));
+                        float shockwavePhase = 20.0 * shockwaveDist - 15.0 * rectAnimationProgress;
+                        float shockwaveAmp = 0.05 * exp(-shockwaveDist * 5.0) * (1.0 - rectAnimationProgress);
+                        rectCenterY += shockwaveAmp * sin(shockwavePhase);
+                        rectHeight *= 1.0 + shockwaveAmp * cos(shockwavePhase);
+                        break;
+                    default: // Gentle float
+                        rectCenterY = 0.5 + 0.1 * sin(rectAnimationProgress * PI);
+                        break;
+            }
+                // Calculate the final gray value
+                vec2 position = animatedUV * gridSize;
+                vec2 stripeIndex = floor(position);
+                vec2 grayScale = 1.0 - abs(2.0 * (stripeIndex / (gridSize - 1.0)) - 1.0);
+
+                float rectTop = rectCenterY + rectHeight / 1.0;
+                float rectBottom = rectCenterY - rectHeight / 1.0;
+                float rectLeft = 0.5 - rectWidth / 1.0;
+                float rectRight = 0.5 + rectWidth / 1.0;
+                
+                if (uv.y > rectBottom && uv.y < rectTop && uv.x > rectLeft && uv.x < rectRight) {
+                    return 1.0;
+                }
+
+                float finalGrayScale = min(grayScale.x, grayScale.y);
+                return MIN_GRAY + finalGrayScale * (1.0 - MIN_GRAY);
+        }
+
+        float text(vec2 pos, vec2 start, vec2 end, float luma, vec2 animatedUV)
+        {
+            vec2 adjustedPos = mix(start, end, animatedUV);
+            
+            int lumaIdx = int(floor(luma * float(NLEVELS)));
+            lumaIdx = min(lumaIdx, NLEVELS - 1);
+            float sizeRat = pow(0.5, float(NLEVELS - 1 - lumaIdx));
+            float charSize = MFSIZE * sizeRat * GSCALE;
+            
+            vec2 gridPos = floor(adjustedPos * iResolution.xy / charSize);
+            vec2 localPos = fract(adjustedPos * iResolution.xy / charSize);
+            
+            localPos.x = localPos.x * 0.5 + 0.25;
+            localPos.y = localPos.y * 0.75 + 0.125;
+            
+            int aiText = int(mod(floor(iTime), 49.0));
+            int[MAX_WORD_LENGTH] currentWord;
+            switch(aiText) {
+                case 0: currentWord = pioneering; break;
+                case 1: currentWord = spirits; break;
+                case 2: currentWord = digital; break;
+                case 3: currentWord = shadows; break;
+                case 4: currentWord = project; break;
+                case 5: currentWord = frontiers; break;
+                case 6: currentWord = unseen; break;
+                case 7: currentWord = yet; break;
+                case 8: currentWord = ever; break;
+                case 9: currentWord = present; break;
+                case 10: currentWord = fusing; break;
+                case 11: currentWord = the; break;
+                case 12: currentWord = avantgarde; break;
+                case 13: currentWord = a; break;
+                case 14: currentWord = vision; break;
+                case 15: currentWord = halfformed; break;
+                case 16: currentWord = with; break;
+                case 17: currentWord = cuttingedge; break;
+                case 18: currentWord = whispers; break;
+                case 19: currentWord = of; break;
+                case 20: currentWord = what; break;
+                case 21: currentWord = may; break;
+                case 22: currentWord = come; break;
+                case 23: currentWord = to; break;
+                case 24: currentWord = craft; break;
+                case 25: currentWord = but; break;
+                case 26: currentWord = immersive; break;
+                case 27: currentWord = illusions; break;
+                case 28: currentWord = transformative; break;
+                case 29: currentWord = echoes; break;
+                case 30: currentWord = world; break;
+                case 31: currentWord = unborn; break;
+                case 32: currentWord = experiences; break;
+                case 33: currentWord = that; break;
+                case 34: currentWord = dance; break;
+                case 35: currentWord = on; break;
+                case 36: currentWord = edge; break;
+                case 37: currentWord = real; break;
+                case 38: currentWord = revolutionize; break;
+                case 39: currentWord = or; break;
+                case 40: currentWord = merely; break;
+                case 41: currentWord = turn; break;
+                case 42: currentWord = creative; break;
+                case 43: currentWord = paradigms; break;
+                case 44: currentWord = shift; break;
+                case 45: currentWord = like; break;
+                case 46: currentWord = sand; break;
+                case 47: currentWord = beneath; break;
+                case 48: currentWord = weight; break;
+                default: currentWord = our; break;
+                
+            }
+            
+            // Find the actual length of the current word
+            int wordLength = 0;
+            for (int i = 0; i < MAX_WORD_LENGTH; i++) {
+                if (currentWord[i] == 32 || currentWord[i] == 0) { 
+                    wordLength = i + 1;
+                    break;
+                }
+            }
+            
+            int charIdx = int(mod(gridPos.x, float(wordLength)));
+            int char = currentWord[charIdx];
+            
+            // Skip rendering if we've reached a null terminator
+            if (char == 0) {
+                return 1.0;
+            }
+            
+            int col = char & 0xf;
+            int row = 15 - (char >> 4);
+            vec2 texCoord = ((vec2(col, row) + localPos) * 64.0) / 1024.0;
+            float dist = texture(iChannel0, texCoord).r;
+            return dist;
+        }
+
+
+        vec2 getAnimatedUV(vec2 uv) {
+
+            float time = iTime;
+            float adjustedTime = floor(time / currentInterval) * currentInterval;
+
+            // Calculate animationIndex and animationProgress
+            int aIUV = int(mod(floor(random(adjustedTime) * 20.0), 20.0));
+            float animationProgress = (time - adjustedTime) / currentInterval;
+            
+            vec2 animatedUV = uv;
+            vec2 center = vec2(0.5);
+
+            switch(aIUV) {
+                case 0: // Horizontal movement
+                    animatedUV.x = fract(uv.x + animationProgress);
+                    break;
+                case 1: // Vertical movement
+                    animatedUV.y = fract(uv.y + animationProgress);
+                    break;
+                case 2: // Diagonal movement
+                    animatedUV = fract(uv + vec2(animationProgress));
+                    break;
+                case 3: // Zoom In/Out
+                    float zoomScale = mix(1.0, 2.5, easeInOutExpo(animationProgress));
+                    animatedUV = (uv - center) * zoomScale + center;
+                    break;
+                case 4: // Rotation
+                    float angle1 = animationProgress * 6.28318;
+                    animatedUV -= center;
+                    animatedUV = vec2(
+                        animatedUV.x * cos(angle1) - animatedUV.y * sin(angle1),
+                        animatedUV.x * sin(angle1) + animatedUV.y * cos(angle1)
+                    );
+                    animatedUV += center;
+                    break;
+                case 5: // Wave movement
+                    float waveAmplitude = 0.05 * (1.0 + sin(animationProgress * 3.14159));
+                    float waveFrequency = 1.0 + 5.0 * sin(animationProgress * 6.28318);
+                    animatedUV.x += waveAmplitude * sin(animatedUV.y * waveFrequency + animationProgress * 6.28318);
+                    break;
+                case 6: // Pulsating (no change to UV)
+                    break;
+                case 7: // Spiral distortion
+                    float spiralStrength = 0.2 * animationProgress;
+                    float spiralAngle = length(uv - center) * 10.0;
+                    vec2 spiralOffset = spiralStrength * vec2(cos(spiralAngle), sin(spiralAngle));
+                    animatedUV = fract(uv + spiralOffset);
+                    break;
+                case 8: // Size change of stripes (no change to UV)
+                    break;
+                case 9: // Distortion
+                    animatedUV += 0.1 * vec2(sin(animatedUV.y * 10.0), cos(animatedUV.x * 10.0)) * animationProgress;
+                    break;
+                case 10: // Circular wave distortion
+                    float dist = length(uv - center);
+                    float wave = sin(dist * 20.0 - animationProgress * 6.28318);
+                    animatedUV += 0.02 * wave * normalize(uv - center);
+                    break;
+                case 11: // Checkerboard pulsation (no change to UV)
+                    break;
+                case 12: // Radial size gradient (no change to UV)
+                    break;
+                case 13: // Twirl distortion
+                    vec2 twirlVector = uv - center;
+                    float twirlLength = length(twirlVector);
+                    float twirlAngle = atan(twirlVector.y, twirlVector.x) + animationProgress * 3.14159 * (1.0 - twirlLength);
+                    animatedUV = center + twirlLength * vec2(cos(twirlAngle), sin(twirlAngle));
+                    break;
+                case 14: // Ripple effect
+                    float rippleDist = length(uv - center);
+                    float ripple = sin(rippleDist * 40.0 - animationProgress * 10.0) * 0.01 / (rippleDist + 0.1);
+                    animatedUV += ripple * (uv - center);
+                    break;
+                case 15: // Zigzag distortion
+                    float zigzag = sin(animatedUV.y * 20.0 + sin(animatedUV.x * 10.0)) * 0.02;
+                    animatedUV.x += zigzag * sin(animationProgress * 6.28318);
+                    break;
+                case 16: // Mosaic effect with random parameters
+                    float randSeed = fract(sin(float(aIUV) * 78.233) * 43758.5453);
+                    float randSize = 5.0 + 95.0 * randSeed; 
+                    vec2 mosaicSize = vec2(randSize, randSize);
+                    float mosaicFactor = -1.0 + 2.0 * smoothstep(0.0, 1.0, animationProgress);
+                    mosaicSize *= max(0.01, abs(mosaicFactor)); 
+                    animatedUV = floor(uv * mosaicSize) / mosaicSize;
+                    break;
+                case 17: // Vertical squeeze and stretch
+                    float squeeze = 1.0 + 0.5 * sin(animationProgress * 6.28318);
+                    animatedUV.y = (uv.y - 0.5) * squeeze + 0.5;
+                    break;
+                case 18: // Horizontal accordion effect
+                    float accordion = 1.0 + 0.3 * sin(uv.x * 10.0 + animationProgress * 6.28318);
+                    animatedUV.x = uv.x * accordion;
+                    break;
+                case 19: // Squeeze
+                    float squeeze2 = 1.0 + 1.5 * sin(animationProgress * 6.28318);
+                    animatedUV.y = (uv.y - 0.5) * squeeze2 + 0.5;
+                    break;
+            }
+        
+            return animatedUV;
+        }
+
+
+            // VHS Effect
+            vec3 vhsEffect(vec2 uv, vec3 color, float strength) {
+                // Time-based distortion
+                float time = iTime * 0.5;
+                
+                // Vertical color shift
+                vec2 shiftUV = uv;
+                shiftUV.x += sin(shiftUV.y * 10.0 + time) * 0.003;
+                
+                // Horizontal color separation
+                vec3 shiftedColor = color;
+                float shiftAmount = 0.05;
+                shiftedColor.r = color.r * (1.0 + sin(shiftUV.x / shiftAmount + time) * 0.05);
+                shiftedColor.g = color.g * (1.0 + sin(shiftUV.x / shiftAmount + time * 1.5) * 0.05);
+                shiftedColor.b = color.b * (1.0 + sin(shiftUV.x / shiftAmount + time * 2.0) * 0.05);
+                
+                // Scanlines
+                float scanline = sin(uv.y * 800.0) * 0.04;
+                shiftedColor -= scanline;
+                
+                // Noise
+                float noise = fract(sin(dot(shiftUV, vec2(12.9898, 78.233) * time)) * 43758.5453);
+                shiftedColor += noise * 0.05;
+                
+                // VHS color bleeding effect
+                float bleedAmount = 0.01;
+                vec3 bleedColor = shiftedColor;
+                bleedColor.r += shiftedColor.g * bleedAmount + shiftedColor.b * bleedAmount * 0.5;
+                bleedColor.g += shiftedColor.r * bleedAmount * 0.5 + shiftedColor.b * bleedAmount * 0.5;
+                bleedColor.b += shiftedColor.r * bleedAmount * 0.25 + shiftedColor.g * bleedAmount;
+                shiftedColor = mix(shiftedColor, bleedColor, 0.6);
+                
+                return mix(color, shiftedColor, strength);
+            }
+
+            void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+
+                vec2 uv = fragCoord.xy / iResolution.xy;
+                
+                float luma = animatedStripes(fragCoord);
+                
+                vec2 animUV = getAnimatedUV(uv);
+                
+                float dist = text(uv, vec2(0.0, 0.0), vec2(1.0, 1.0), luma, animUV);
+                
+                float border = 0.0;
+                float alias = length(fwidth(uv)) * 0.5;
+                float opacity = smoothstep(0.4, 0.6, dist);
+                vec3 color = vec3(0.);
+                color = vec3(1.-smoothstep(+alias, -alias, dist - 0.5));
+
+               const vec3 fontCol[5] = vec3[](
+                    vec3(0.937, 0.965, 0.988),  // Very light blue
+                    vec3(0.729, 0.831, 0.914),  // Light blue
+                    vec3(0.400, 0.584, 0.737),  // Medium blue
+                    vec3(0.165, 0.310, 0.435),  // Dark blue
+                    vec3(0.059, 0.114, 0.161)   // Very dark blue
+                );
+
+                const vec3 bgCol[5] = vec3[](
+                    vec3(0.020, 0.039, 0.055),  // Near black blue
+                    vec3(0.094, 0.180, 0.251),  // Deep blue
+                    vec3(0.275, 0.435, 0.573),  // Steel blue
+                    vec3(0.549, 0.671, 0.773),  // Sky blue
+                    vec3(0.855, 0.910, 0.953)   // Pale blue
+                );
+                int colorIndex = int(floor(luma * 5.));
+                color = fontCol[colorIndex];
+                colorIndex = min(colorIndex, 0);
+                
+                //vec3 bgColor = vec3(0.04, 0.02, 0.18) * 0.5;
+                vec3 bgColor = bgCol[colorIndex];
+                
+                fragColor.rgb = mix(bgColor, color, opacity);
+                fragColor.a = 1.0;
+                vec3 oc = fragColor.rgb;
+                
+                
+                //oc += colorQuantization(fragColor.rgb, 1.);
+                oc += vhsEffect(uv, fragColor.rgb, 1.-luma);
+                //oc = rgbSplit(oc, uv, luma*0.0001, iResolution.xy);
+                oc = adjustSaturation(oc, luma*0.5);
+                fragColor.rgb = oc/luma;
+            }
+
+        void main() {
+            // Correct UV for aspect ratio
+            vec2 uv = vUv;
+            vec2 aspectRatio = vec2(iResolution.x / iResolution.y, 1.0); 
+            uv = (uv - 0.5) * aspectRatio + 0.5; // Maintain centering while applying aspect ratio
+
+            // Convert UV to fragCoord
+            vec2 fragCoord = uv * iResolution;
+            vec4 fragColor;
+
+            // Render the main image
+            mainImage(fragColor, fragCoord);
+
+            // Apply centered circular mask with smooth edges
+            float mask = length((uv - 0.5) * 2.0) - 0.5; // Centered circular mask
+            float edgeWidth = 0.05; // Width of the smooth edge
+            float smoothMask = smoothstep(0.5 + edgeWidth, 0.5 - edgeWidth, mask);
+
+            // Blend based on the mask
+            gl_FragColor = mix(vec4(1.0), fragColor, smoothMask); // White outside, image inside
+        }
+
+
+
+        `;
+
+        // Set up scene, camera, renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create plane geometry
+        const geometry = new THREE.PlaneGeometry(2, 2);
+
+        // Load textures
+        const textureLoader = new THREE.TextureLoader();
+        //const texture0 = textureLoader.load('lucidagrande.jpg');
+        const texture0 = textureLoader.load('font.png');
+
+        // Create shader material
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: {
+                iTime: { value: 0 },
+                iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                iChannel0: { value: texture0 }
+            }
+        });
+
+        // Create mesh and add to scene
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        // Animation loop
+        function animate(time) {
+            requestAnimationFrame(animate);
+            material.uniforms.iTime.value = time * 0.001;
+            renderer.render(scene, camera);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            material.uniforms.iResolution.value.set(width, height);
+        });
+
+        animate(0);
+    </script>
+</body>
+
+</html>
